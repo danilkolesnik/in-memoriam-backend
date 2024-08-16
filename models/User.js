@@ -20,6 +20,14 @@ const User = sequelize.define("User", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  birthDate: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  passDate: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   login: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -36,6 +44,9 @@ const User = sequelize.define("User", {
     type: DataTypes.STRING,
   },
   bio: {
+    type: DataTypes.TEXT,
+  },
+  quote: {
     type: DataTypes.TEXT,
   },
 });
