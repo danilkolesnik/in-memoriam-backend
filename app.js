@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require('path');
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { sequelize, connectDB } = require("./config/db");
@@ -28,6 +29,9 @@ app.use(
 app.use(express.json());
 
 // Определение маршрутов
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.use("/users", require("./routes/userRoutes"));
 
 const PORT = process.env.PORT || 5000;

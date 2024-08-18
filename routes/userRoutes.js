@@ -1,12 +1,15 @@
 const express = require("express");
 const CryptoJS = require("crypto-js");
+const { uuid } = require("uuidv4"); 
+const mime = require('mime-types');
 const jwt = require("jsonwebtoken");
-const User = require("../models/User"); // Подключаем модель пользователя
+const User = require("../models/User");
 const router = express.Router();
+const upload = require("../config/multerConfig");
+const fs = require("fs");
 
-const SECRET_KEY = "h5v7y9z^&*b2!@1c3$kq#u@9e$%x6l1"; // Ключ для дешифрования
+const SECRET_KEY = "h5v7y9z^&*b2!@1c3$kq#u@9e$%x6l1";
 
-// Вход в систему
 router.post("/login", async (req, res) => {
   console.log(req.body);
   const { login, password } = req.body;
@@ -107,7 +110,7 @@ router.patch("/update-info", async (req, res) => {
   } = req.body;
 
   // Получаем токен из заголовка
-   const token = req.headers.authorization?.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({ message: "Требуется авторизация." });
@@ -119,7 +122,6 @@ router.patch("/update-info", async (req, res) => {
   if (!user) {
     return res.status(404).json({ message: "Пользователь не найден." });
   }
-
 
   // Определяем обновляемые поля
   const updateFields = {};
@@ -149,6 +151,115 @@ router.patch("/update-info", async (req, res) => {
   } catch (error) {
     console.error("Ошибка при обновлении данных:", error);
     res.status(500).json({ message: "Внутренняя ошибка сервера." });
+  }
+});
+
+router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
+  try {
+    const avatarPath = req.file.path;
+
+    // Сохраните путь к аватару в базе данных
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Требуется авторизация." });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "Пользователь не найден." });
+    }
+
+    user.avatar = avatarPath;
+    await user.save();
+
+    res
+      .status(200)
+      .json({ message: "Аватар загружен успешно.", avatar: avatarPath });
+  } catch (error) {
+    console.error("Ошибка при загрузке аватара:", error);
+    res.status(500).json({ message: "Внутренняя ошибка сервера." });
+  }
+});
+
+router.post("/upload-banner", upload.single("banner"), async (req, res) => {
+  try {
+    const bannerPath = req.file.path;
+
+    // Сохраните путь к аватару в базе данных
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Требуется авторизация." });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "Пользователь не найден." });
+    }
+
+    user.banner = bannerPath;
+    await user.save();
+
+    res
+      .status(200)
+      .json({ message: "Баннер загружен успешно.", banner: bannerPath });
+  } catch (error) {
+    console.error("Ошибка при загрузке баннера:", error);
+    res.status(500).json({ message: "Внутренняя ошибка сервера." });
+  }
+});
+
+router.post("/upload-media", upload.single("media"), async (req, res) => {
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ message: "Файл не загружен" });
+  }
+
+  try {
+    // Проверяем наличие токена
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Требуется авторизация." });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id);
+
+    // Генерируем ID для медиафайла
+    const mediaId = uuid();
+    const mediaUrl = `uploads/${file.filename}`;
+
+    // Определяем тип медиа (видео или фото) на основе MIME-типа
+    const mimeType = mime.lookup(file.originalname);
+    let mediaType;
+
+    if (mimeType.startsWith("image/")) {
+      mediaType = "photo";
+    } else if (mimeType.startsWith("video/")) {
+      mediaType = "video";
+    } else {
+      return res.status(400).json({ message: "Неподдерживаемый тип файла." });
+    }
+
+    // Создаем объект медиафайла с пометкой типа
+    const mediaItem = { id: mediaId, url: mediaUrl, type: mediaType };
+    const updatedMedia = [...(user.media || []), mediaItem];
+    user.media = updatedMedia;
+
+    // Сохраняем изменения
+    await user.save();
+
+    res.status(200).json({ mediaId, mediaUrl, mediaType });
+  } catch (error) {
+    console.error("Ошибка при загрузке медиафайла:", error);
+    res.status(500).json({ message: "Внутренняя ошибка сервера" });
   }
 });
 

@@ -49,6 +49,11 @@ const User = sequelize.define("User", {
   quote: {
     type: DataTypes.TEXT,
   },
+  media: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [], 
+  },
 });
 
 module.exports = User;
