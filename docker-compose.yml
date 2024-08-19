@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_container
+    environment:
+      POSTGRES_DB: memory_database
+      POSTGRES_USER: memoryuser
+      POSTGRES_PASSWORD: "54645645645Danil"
+      JWT_SECRET: h5v7y9z^&*b  # Escaped special characters
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
