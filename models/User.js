@@ -56,8 +56,8 @@ const User = sequelize.define("User", {
   },
   isPrivate: {
     type: DataTypes.BOOLEAN,
-    allowNull: false, // Указываем, что значение обязательно
-    defaultValue: false, // Значение по умолчанию
+    allowNull: false,
+    defaultValue: false, 
   },
 });
 

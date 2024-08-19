@@ -62,8 +62,6 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Внутренняя ошибка сервера." });
   }
 });
-
-// router.get("/get-info", async (req, res) => {
 //   // Извлечение токена из заголовка запроса
 //   const authHeader = req.headers["authorization"];
 //   const token = authHeader && authHeader.split(" ")[1]; // Предполагается, что токен передается в виде "Bearer <token>"
@@ -128,7 +126,7 @@ router.put("/setup-info", async (req, res) => {
 });
 
 router.patch("/update-info", async (req, res) => {
-  // Извлекаем данные из запроса
+  
   const {
     firstName,
     lastName,
@@ -142,7 +140,7 @@ router.patch("/update-info", async (req, res) => {
     isPrivate,
   } = req.body;
 
-  // Получаем токен из заголовка
+  
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
@@ -156,7 +154,7 @@ router.patch("/update-info", async (req, res) => {
     return res.status(404).json({ message: "Пользователь не найден." });
   }
 
-  // Определяем обновляемые поля
+  
   const updateFields = {};
 
   if (firstName !== undefined) updateFields.firstName = firstName;
@@ -175,11 +173,10 @@ router.patch("/update-info", async (req, res) => {
   }
 
   try {
-    // Обновляем данные пользователя
+    
 
     await user.update(updateFields);
 
-    // Отправляем обновленные данные пользователю
 
     res.status(200).json(user);
   } catch (error) {
@@ -192,7 +189,6 @@ router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
   try {
     const avatarPath = req.file.path;
 
-    // Сохраните путь к аватару в базе данных
     const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
@@ -222,7 +218,6 @@ router.post("/upload-banner", upload.single("banner"), async (req, res) => {
   try {
     const bannerPath = req.file.path;
 
-    // Сохраните путь к аватару в базе данных
     const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
@@ -256,7 +251,7 @@ router.post("/upload-media", upload.single("media"), async (req, res) => {
   }
 
   try {
-    // Проверяем наличие токена
+
     const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
@@ -266,11 +261,10 @@ router.post("/upload-media", upload.single("media"), async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findByPk(decoded.id);
 
-    // Генерируем ID для медиафайла
+
     const mediaId = uuid();
     const mediaUrl = `uploads/${file.filename}`;
 
-    // Определяем тип медиа (видео или фото) на основе MIME-типа
     const mimeType = mime.lookup(file.originalname);
     let mediaType;
 
@@ -282,12 +276,10 @@ router.post("/upload-media", upload.single("media"), async (req, res) => {
       return res.status(400).json({ message: "Неподдерживаемый тип файла." });
     }
 
-    // Создаем объект медиафайла с пометкой типа
     const mediaItem = { id: mediaId, url: mediaUrl, type: mediaType };
     const updatedMedia = [...(user.media || []), mediaItem];
     user.media = updatedMedia;
 
-    // Сохраняем изменения
     await user.save();
 
     res.status(200).json({ mediaId, mediaUrl, mediaType });
@@ -301,20 +293,17 @@ router.delete("/delete-media/:userId/:mediaId", async (req, res) => {
   const { userId, mediaId } = req.params;
 
   try {
-    // Ищем пользователя по ID
     const user = await User.findByPk(userId);
     console.log(user);
     if (!user) {
       return res.status(404).json({ message: "Пользователь не найден" });
     }
 
-    // Находим медиафайл по ID
     const mediaItem = user.media.find((item) => item.id === mediaId);
     if (!mediaItem) {
       return res.status(404).json({ message: "Медиафайл не найден" });
     }
 
-    // Удаляем файл из папки uploads
     const filePath = path.join(
       __dirname,
       "../uploads",
@@ -327,7 +316,6 @@ router.delete("/delete-media/:userId/:mediaId", async (req, res) => {
       }
     });
 
-    // Удаляем медиафайл из массива медиа пользователя
     user.media = user.media.filter((item) => item.id !== mediaId);
     await user.save();
 
