@@ -52,7 +52,12 @@ const User = sequelize.define("User", {
   media: {
     type: DataTypes.JSONB,
     allowNull: true,
-    defaultValue: [], 
+    defaultValue: [],
+  },
+  isPrivate: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false, // Указываем, что значение обязательно
+    defaultValue: false, // Значение по умолчанию
   },
 });
 

@@ -1,12 +1,14 @@
 const express = require("express");
 const CryptoJS = require("crypto-js");
-const { uuid } = require("uuidv4"); 
-const mime = require('mime-types');
+const { uuid } = require("uuidv4");
+const path = require("path");
+const mime = require("mime-types");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const router = express.Router();
 const upload = require("../config/multerConfig");
 const fs = require("fs");
+const userController = require("../controllers/userController");
 
 const SECRET_KEY = "h5v7y9z^&*b2!@1c3$kq#u@9e$%x6l1";
 
@@ -61,6 +63,36 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// router.get("/get-info", async (req, res) => {
+//   // Извлечение токена из заголовка запроса
+//   const authHeader = req.headers["authorization"];
+//   const token = authHeader && authHeader.split(" ")[1]; // Предполагается, что токен передается в виде "Bearer <token>"
+
+//   if (!token) {
+//     return res.status(400).json({ message: "Токен не предоставлен." });
+//   }
+
+//   try {
+//     // Проверка и декодирование токена
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     const userId = decoded.id; // Извлечение идентификатора пользователя из токена
+
+//     // Поиск пользователя в базе данных
+//     const user = await User.findByPk(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: "Пользователь не найден." });
+//     }
+
+//     // Возвращаем информацию о пользователе
+//     res.status(200).json(user);
+//   } catch (error) {
+//     console.error("Ошибка при получении данных пользователя:", error);
+//     res.status(500).json({ message: "Ошибка сервера." });
+//   }
+// });
+
+router.get("/users/:id", userController.getUserById);
+
 router.put("/setup-info", async (req, res) => {
   const { firstName, lastName, middleName, birthDate, passDate } = req.body;
   const token = req.headers.authorization?.split(" ")[1];
@@ -107,6 +139,7 @@ router.patch("/update-info", async (req, res) => {
     bio,
     avatar,
     banner,
+    isPrivate,
   } = req.body;
 
   // Получаем токен из заголовка
@@ -135,6 +168,7 @@ router.patch("/update-info", async (req, res) => {
   if (bio !== undefined) updateFields.bio = bio;
   if (avatar !== undefined) updateFields.avatar = avatar;
   if (banner !== undefined) updateFields.banner = banner;
+  if (isPrivate !== undefined) updateFields.isPrivate = isPrivate;
 
   if (Object.keys(updateFields).length === 0) {
     return res.status(400).json({ message: "Нет данных для обновления." });
@@ -263,31 +297,44 @@ router.post("/upload-media", upload.single("media"), async (req, res) => {
   }
 });
 
-router.get("/get-info", async (req, res) => {
-  // Извлечение токена из заголовка запроса
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Предполагается, что токен передается в виде "Bearer <token>"
-
-  if (!token) {
-    return res.status(400).json({ message: "Токен не предоставлен." });
-  }
+router.delete("/delete-media/:userId/:mediaId", async (req, res) => {
+  const { userId, mediaId } = req.params;
 
   try {
-    // Проверка и декодирование токена
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id; // Извлечение идентификатора пользователя из токена
-
-    // Поиск пользователя в базе данных
+    // Ищем пользователя по ID
     const user = await User.findByPk(userId);
+    console.log(user);
     if (!user) {
-      return res.status(404).json({ message: "Пользователь не найден." });
+      return res.status(404).json({ message: "Пользователь не найден" });
     }
 
-    // Возвращаем информацию о пользователе
-    res.status(200).json(user);
+    // Находим медиафайл по ID
+    const mediaItem = user.media.find((item) => item.id === mediaId);
+    if (!mediaItem) {
+      return res.status(404).json({ message: "Медиафайл не найден" });
+    }
+
+    // Удаляем файл из папки uploads
+    const filePath = path.join(
+      __dirname,
+      "../uploads",
+      path.basename(mediaItem.url)
+    );
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Ошибка при удалении файла:", err);
+        return res.status(500).json({ message: "Ошибка при удалении файла" });
+      }
+    });
+
+    // Удаляем медиафайл из массива медиа пользователя
+    user.media = user.media.filter((item) => item.id !== mediaId);
+    await user.save();
+
+    res.status(200).json({ message: "Медиафайл успешно удален" });
   } catch (error) {
-    console.error("Ошибка при получении данных пользователя:", error);
-    res.status(500).json({ message: "Ошибка сервера." });
+    console.error("Ошибка при удалении медиафайла:", error);
+    res.status(500).json({ message: "Внутренняя ошибка сервера" });
   }
 });
 
